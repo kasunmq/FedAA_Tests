@@ -237,12 +237,6 @@ class Server(object):
                 cl, ns = c.train_metrics()
                 num_samples.append(ns)
                 losses.append(cl * 1.0)
-                
-                # Store individual client loss (average per client)
-                if ns > 0:
-                    self.client_losses[c.id] = cl / ns
-                else:
-                    self.client_losses[c.id] = 0.0
 
         ids = benign_clients
 
@@ -290,34 +284,11 @@ class Server(object):
         return stats, train_loss
 
     def save_client_round_data(self, round_num):
-        """Save/update client-level data - maintains 100 client records only"""
-        # Read existing data if file exists
-        client_data = {}
-        if os.path.exists(self.clients_results_file):
-            try:
-                with open(self.clients_results_file, 'r') as f:
-                    # Skip header
-                    next(f)
-                    for line in f:
-                        parts = line.strip().split(',')
-                        if len(parts) >= 4:
-                            client_data[int(parts[0])] = line.strip()
-            except:
-                pass
-        
-        # Update client records with current round data
-        for client_id in range(self.num_clients):
-            loss = self.client_losses.get(client_id, 0.0)
-            num_samples = self.clients[client_id].train_samples
-            selection_count = self.client_selection_count.get(client_id, 0)
-            aggregation_count = self.client_aggregation_count.get(client_id, 0)
-            
-            # Update or add client record
-            client_data[client_id] = f"{client_id},{num_samples},{loss:.4f},{selection_count},{aggregation_count}"
-        
-        # Write all client records back to file (exactly 100 rows)
-        with open(self.clients_results_file, 'w') as f:
-            f.write("Client Number,Number of Data Samples,Loss Value,Selection Count,Aggregation Count\n")
+        """Save client-level data for the current round"""
+        with open(self.clients_results_file, 'a') as f:
             for client_id in range(self.num_clients):
-                if client_id in client_data:
-                    f.write(client_data[client_id] + "\n")
+                loss = self.client_losses.get(client_id, 0.0)
+                selection_count = self.client_selection_count.get(client_id, 0)
+                aggregation_count = self.client_aggregation_count.get(client_id, 0)
+                # Format: Client Number,Loss Value,Selection Count,Aggregation Count
+                f.write(f"{client_id},{loss:.4f},{selection_count},{aggregation_count}\n")

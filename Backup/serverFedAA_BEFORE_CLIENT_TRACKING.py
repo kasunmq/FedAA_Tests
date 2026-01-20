@@ -50,10 +50,6 @@ class FedAA(Server):
         state = state_temp_sum[indices]
         state /= state.max()
         self.aggre_clients = [self.selected_clients[i] for i in indices]
-        
-        # Track aggregation count
-        for aggre_client in self.aggre_clients:
-            self.client_aggregation_count[aggre_client.id] += 1
 
         return state, self.aggre_clients
 
@@ -84,8 +80,6 @@ class FedAA(Server):
                 train_time_begin = time.time()
                 for client in self.clients:
                     client.train()
-                    # Track client loss (selection count updated later based on actual selection)
-                    self.client_losses[client.id] = getattr(client, 'train_loss', 0.0)
                     if client.id in self.ad_clients:
                         if self.attack == 'same_value':
                             new_value = 1 * np.random.normal(0, 100, 1).item()
@@ -108,15 +102,8 @@ class FedAA(Server):
                 print('train time {:.4f}'.format(train_time - train_time_begin))
                 print("\nEvaluate local model")
                 self.evaluate(self.benign_clients, round_num=i, model_type='local')
-                
-                # Save client-level data for this round
-                self.save_client_round_data(i)
 
                 next_state, self.aggre_clients = self.get_state()
-                
-                # Increment selection count for the 10 actually selected clients
-                for selected_client in self.selected_clients:
-                    self.client_selection_count[selected_client.id] += 1
 
                 self.replay_buffer.add(state, action, next_state, reward, done)
                 self.agent.update_parameters(self.replay_buffer, 16)

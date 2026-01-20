@@ -97,17 +97,17 @@ if __name__ == "__main__":
     parser.add_argument("--attack", type=str, default='same_value',
                         help='type of the attack', choices=['same_value', 'sign_flip', 'gaussian'])
     parser.add_argument('-ldg', "--learning_rate_decay_gamma", type=float, default=0.99)
-    parser.add_argument('-gr', "--global_rounds", type=int, default=200)
-    parser.add_argument('-ls', "--local_epochs", type=int, default=20,
+    parser.add_argument('-gr', "--global_rounds", type=int, default=100)
+    parser.add_argument('-ls', "--local_epochs", type=int, default=1,
                         help="Multiple update steps in one local epoch.")
     parser.add_argument('-algo', "--algorithm", type=str, default="FedAA")
     parser.add_argument('-nc', "--num_clients", type=int, default=100,
                         help="Total number of clients")
-    parser.add_argument('-ns', "--num_sel_clients", type=int, default=100,
+    parser.add_argument('-ns', "--num_sel_clients", type=int, default=10,
                         help="The number of selected clients")
-    parser.add_argument('-an', "--aggre_num", type=int, default=50,
+    parser.add_argument('-an', "--aggre_num", type=int, default=5,
                         help="The number of clients aggregated")
-    parser.add_argument("--ad_ratio", type=float, default=0.2,
+    parser.add_argument("--ad_ratio", type=float, default=0.0,
                         help='Ratio of adversaries')
     parser.add_argument("--buffer_size", default=100000, type=int,
                         help='Size of the experience replay buffer (default: 100000)')

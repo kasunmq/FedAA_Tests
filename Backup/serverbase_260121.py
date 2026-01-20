@@ -59,37 +59,6 @@ class Server(object):
         self.times = times
         self.replay_buffer = ExperienceReplayBuffer(args.aggre_num, args.aggre_num, max_size=args.buffer_size)
 
-        # Initialize result files for global and local models
-        # Create RESULTS folder if it doesn't exist
-        script_dir = os.path.dirname(os.path.abspath(__file__))
-        project_dir = os.path.dirname(script_dir)  # Go up one level from servers/
-        self.results_dir = os.path.join(project_dir, "RESULTS")
-        if not os.path.exists(self.results_dir):
-            os.makedirs(self.results_dir)
-        
-        # Create file names with timestamp
-        time_now = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        self.global_results_file = os.path.join(self.results_dir, f"global_{time_now}.txt")
-        self.local_results_file = os.path.join(self.results_dir, f"local_{time_now}.txt")
-        
-        # Initialize file headers
-        header = "Round No,Averaged Train Loss,Averaged Test Accuracy,Averaged Test AUC,Std Test Accuracy,Std Test AUC\n"
-        with open(self.global_results_file, 'w') as f:
-            f.write(header)
-        with open(self.local_results_file, 'w') as f:
-            f.write(header)
-
-        # Initialize client-level tracking
-        self.client_losses = {i: 0.0 for i in range(self.num_clients)}  # Latest loss per client
-        self.client_selection_count = {i: 0 for i in range(self.num_clients)}  # Times selected for training
-        self.client_aggregation_count = {i: 0 for i in range(self.num_clients)}  # Times selected for aggregation
-        
-        # Create clients results file
-        self.clients_results_file = os.path.join(self.results_dir, f"clients_{time_now}.txt")
-        client_header = "Client Number,Loss Value,Selection Count,Aggregation Count\n"
-        with open(self.clients_results_file, 'w') as f:
-            f.write(client_header)
-
     def set_clients(self, clientObj):
         for i in range(self.num_clients):
             train_data = read_client_data(self.dataset, i, is_train=True)
@@ -237,19 +206,13 @@ class Server(object):
                 cl, ns = c.train_metrics()
                 num_samples.append(ns)
                 losses.append(cl * 1.0)
-                
-                # Store individual client loss (average per client)
-                if ns > 0:
-                    self.client_losses[c.id] = cl / ns
-                else:
-                    self.client_losses[c.id] = 0.0
 
         ids = benign_clients
 
         return ids, num_samples, losses
     # evaluate selected clients
 
-    def evaluate(self, benign_clients, acc=None, loss=None, round_num=None, model_type='global'):
+    def evaluate(self, benign_clients, acc=None, loss=None):
         stats = self.test_metrics(benign_clients)
         stats_train = self.train_metrics(benign_clients)
 
@@ -277,47 +240,4 @@ class Server(object):
         print("Std Test Accurancy: {:.4f}".format(np.std(accs)))
         print("Std Test AUC: {:.4f}".format(np.std(aucs)))
 
-        # Save results to appropriate file
-        if round_num is not None:
-            result_line = f"{round_num},{train_loss:.4f},{test_acc:.4f},{test_auc:.4f},{np.std(accs):.4f},{np.std(aucs):.4f}\n"
-            if model_type == 'global':
-                with open(self.global_results_file, 'a') as f:
-                    f.write(result_line)
-            elif model_type == 'local':
-                with open(self.local_results_file, 'a') as f:
-                    f.write(result_line)
-
         return stats, train_loss
-
-    def save_client_round_data(self, round_num):
-        """Save/update client-level data - maintains 100 client records only"""
-        # Read existing data if file exists
-        client_data = {}
-        if os.path.exists(self.clients_results_file):
-            try:
-                with open(self.clients_results_file, 'r') as f:
-                    # Skip header
-                    next(f)
-                    for line in f:
-                        parts = line.strip().split(',')
-                        if len(parts) >= 4:
-                            client_data[int(parts[0])] = line.strip()
-            except:
-                pass
-        
-        # Update client records with current round data
-        for client_id in range(self.num_clients):
-            loss = self.client_losses.get(client_id, 0.0)
-            num_samples = self.clients[client_id].train_samples
-            selection_count = self.client_selection_count.get(client_id, 0)
-            aggregation_count = self.client_aggregation_count.get(client_id, 0)
-            
-            # Update or add client record
-            client_data[client_id] = f"{client_id},{num_samples},{loss:.4f},{selection_count},{aggregation_count}"
-        
-        # Write all client records back to file (exactly 100 rows)
-        with open(self.clients_results_file, 'w') as f:
-            f.write("Client Number,Number of Data Samples,Loss Value,Selection Count,Aggregation Count\n")
-            for client_id in range(self.num_clients):
-                if client_id in client_data:
-                    f.write(client_data[client_id] + "\n")

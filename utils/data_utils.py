@@ -2,11 +2,19 @@ import numpy as np
 import os
 import torch
 
+from pathlib import Path
+BASE_DIR = Path(__file__).resolve().parents[1]   # points to FED_AA/FedAA
+DATASET_DIR = BASE_DIR / "dataset"
+
 
 def read_data(dataset, idx, is_train=True):
     if idx==None:
-        test_data_dir = os.path.join('./dataset', dataset, 'test/')
-        test_file = test_data_dir + 'server_test.npz'
+        # test_data_dir = os.path.join('./dataset', dataset, 'test/')
+        # test_file = test_data_dir + 'server_test.npz'
+
+        test_data_dir  = DATASET_DIR / dataset / "test"
+        test_file  = test_data_dir  / 'server_test.npz'
+        
         with open(test_file, 'rb') as f:
             test_data = np.load(f, allow_pickle=True)['x'].tolist()
             test_target = np.load(f, allow_pickle=True)['y'].tolist()
@@ -17,15 +25,23 @@ def read_data(dataset, idx, is_train=True):
 
     else:
         if is_train:
-            train_data_dir = os.path.join('./dataset', dataset, 'train/')
-            train_file = train_data_dir + str(idx) + '.npz'
+            # train_data_dir = os.path.join('./dataset', dataset, 'train/')
+            # train_file = train_data_dir + str(idx) + '.npz'
+
+            train_data_dir = DATASET_DIR / dataset / "train"
+            train_file = train_data_dir / f"{idx}.npz"
+
             with open(train_file, 'rb') as f:
                 train_data = np.load(f, allow_pickle=True)['data'].tolist()
             return train_data
 
         else:
-            test_data_dir = os.path.join('./dataset', dataset, 'test/')
-            test_file = test_data_dir + str(idx) + '.npz'
+            # test_data_dir = os.path.join('./dataset', dataset, 'test/')
+            # test_file = test_data_dir + str(idx) + '.npz'
+
+            test_data_dir  = DATASET_DIR / dataset / "test"
+            test_file  = test_data_dir  / f"{idx}.npz"
+
             with open(test_file, 'rb') as f:
                 test_data = np.load(f, allow_pickle=True)['data'].tolist()
 

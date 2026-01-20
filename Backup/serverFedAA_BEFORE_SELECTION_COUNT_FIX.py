@@ -84,7 +84,8 @@ class FedAA(Server):
                 train_time_begin = time.time()
                 for client in self.clients:
                     client.train()
-                    # Track client loss (selection count updated later based on actual selection)
+                    # Track client selection and loss
+                    self.client_selection_count[client.id] += 1
                     self.client_losses[client.id] = getattr(client, 'train_loss', 0.0)
                     if client.id in self.ad_clients:
                         if self.attack == 'same_value':
@@ -113,10 +114,6 @@ class FedAA(Server):
                 self.save_client_round_data(i)
 
                 next_state, self.aggre_clients = self.get_state()
-                
-                # Increment selection count for the 10 actually selected clients
-                for selected_client in self.selected_clients:
-                    self.client_selection_count[selected_client.id] += 1
 
                 self.replay_buffer.add(state, action, next_state, reward, done)
                 self.agent.update_parameters(self.replay_buffer, 16)
